@@ -1,25 +1,22 @@
 import struct
+import math
 
 
 class Packet:
-    '''
+    """
     Sequence number = 4 bytes
     Ack number = 4 bytes
     Flags = 1 byte
     Checksum = 2 bytes
     Data = Max 32768 bytes
-    '''
-    def __init__(self, seq_num=0, ack_num=0, flag=b"\x00", data=b"", byte_data=None):
-        print(byte_data)
+    """
 
+    def __init__(self, seq_num=0, ack_num=0, flag=b"\x00", data=b"", byte_data=None):
         if byte_data is not None:
-            print(byte_data[0:4])
-            self.seq_num = struct.pack("I", int.from_bytes(byte_data[0:4], 'little'))
-            print(byte_data[4:8])
-            self.ack_num = struct.pack("I", int.from_bytes(byte_data[4:8], 'little'))
-            print(byte_data[8])
-            self.flag = struct.pack("s", bytes(byte_data[8]))
-            self.checksum = struct.pack("H", int.from_bytes(byte_data[10:12], 'little'))
+            self.seq_num = struct.pack("I", int.from_bytes(byte_data[0:4], "little"))
+            self.ack_num = struct.pack("I", int.from_bytes(byte_data[4:8], "little"))
+            self.flag = struct.pack("B", byte_data[8])
+            self.checksum = struct.pack("H", int.from_bytes(byte_data[10:12], "little"))
             self.data = struct.pack(f"{len(byte_data[12:])}s", byte_data[12:])
             self.data_length = len(byte_data[12:])
             return
@@ -44,6 +41,7 @@ class Packet:
             + self.checksum
             + self.data
         )
+
     def get_seq_num(self):
         return struct.unpack(">I", self.seq_num)[0]
 
@@ -77,18 +75,10 @@ class Packet:
     def generate_checksum(self):
         checksum = 0xFFFF & 0
         content = bytearray(self.seq_num + self.ack_num + self.flag + self.data)
-        chunks = [content[i:i+2] for i in range(0, len(content), 2)]
+        chunks = [content[i : i + 2] for i in range(0, len(content), 2)]
         for chunk in chunks:
             if len(chunk) == 1:
-              # padding byte
-              chunk += struct.pack('x')
-            checksum = 0xFFFF & (checksum + struct.unpack('>H', chunk)[0])
-        return (~checksum & 0xFFFF)
-
-# seq_num = struct.pack("I", int.from_bytes(b'\x00\x00\x00\x10', 'little'))
-# print(seq_num)
-# seq = 16
-# seqpack = struct.pack(">I", seq)
-# print(seqpack)
-# unpack_seq = struct.unpack(">I", seqpack)[0]
-# print(unpack_seq)
+                # padding byte
+                chunk += struct.pack("x")
+            checksum = 0xFFFF & (checksum + struct.unpack(">H", chunk)[0])
+        return ~checksum & 0xFFFF

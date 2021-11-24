@@ -2,8 +2,9 @@ import socket
 import pickle
 import sys
 import os
+import struct
 import ThreeWayHandshake
-from dummyPkt import Packet
+from packet import Packet
 
 localIP = socket.gethostbyname(socket.gethostname())
 localPort = int(sys.argv[1])
@@ -59,7 +60,6 @@ for i in range(len(conlist)):
 
     # Go Back N
     path = open(sys.argv[2], "rb")
-    con.setblocking(0)
     N = 4
     FIN = False
     timeoutpd = 1
@@ -76,7 +76,7 @@ for i in range(len(conlist)):
     while not FIN:
         try:
             # CHECK FOR ACK
-            data, _ = con.recvfrom(32766)
+            data, _ = con.recvfrom(32780)
             p = Packet(byte_data=data)
 
             if p.get_flag() == b"\x02":
@@ -87,13 +87,13 @@ for i in range(len(conlist)):
             # IF ACK is In Order
             if p.get_ack_num() >= expected_seqnum and p.get_flag() == b"\x10":
                 print("[!] Receive ACK: ", p.get_ack_num())
-                for i in range(expected_seqnum, p.get_ack_num() + 1):
-                    buffer[i] = 0
+                for j in range(expected_seqnum, p.get_ack_num() + 1):
+                    buffer[j] = 0
 
-                expected_seqnum = p.get_ack_num()
+                expected_seqnum = p.get_ack_num() + 1
                 # Empty Buffer
                 # Slides Window
-                sb = p.get_ack_num() + 1
+                sb = p.get_ack_num()
                 sm = sb + N
 
             # Invalid Order
@@ -105,32 +105,34 @@ for i in range(len(conlist)):
             # Send FIN
             if EOT and all(x == 0 for x in buffer):
                 p = Packet(flag=b"\x02")
-                con.sendall(p.get_packet_content())
+                con.sendto(p.get_packet_content(), adrlist[i])
 
             # Timeout Resend Buffer
             elif not all(x == 0 for x in buffer):
-                for i in range(len(buffer)):
-                    if buffer[i] != 0:
-                        con.sendall(buffer[i].get_packet_content())
+                for j in range(len(buffer)):
+                    if buffer[j] != 0:
+                        con.sendto(buffer[j].get_packet_content(), adrlist[i])
 
         # ACK is out of order
         # Resend all packets in the window
         if inorder:
             print("[!!] Packet is out of order")
             # Resend packet
-            for i in range(len(buffer)):
-                if buffer[i] != 0:
-                    print("[!] Resending packet seq", buffer[i].get_seq_num())
-                    con.sendall(buffer[i].get_packet_content())
+            for j in range(len(buffer)):
+                if buffer[j] != 0:
+                    print("[!] Resending packet seq", buffer[j].get_seq_num())
+                    con.sendto(buffer[j].get_packet_content(), adrlist[i])
             inorder = False
 
         if sn < sb + N and not EOT:  # sb <= sn <= sm
             Ntemp = N + sb - sn
 
-            print(Ntemp)
             # Send packet in empty place
             while Ntemp > 0:
-                filedata = path.read(32766)
+                if filesize <= 0:
+                    EOT = True
+                    break
+                filedata = path.read(32780)
 
                 print("[!] Sending Packet Sn: ", sn)
                 p = Packet(flag=b"\x00", seq_num=sn, data=filedata)
@@ -138,12 +140,11 @@ for i in range(len(conlist)):
                     buffer[sn] = p
                 except:
                     buffer.append(p)
-                con.sendall(p.get_packet_content())
+                con.sendto(p.get_packet_content(), adrlist[i])
                 sn = sn + 1
                 # Final
-                if filesize <= 32766:
-                    EOT = True
-                    break
-                filesize -= 32766
+                filesize -= 32780
                 Ntemp -= 1
+                
+    con.close()
 path.close()

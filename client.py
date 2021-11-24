@@ -1,8 +1,9 @@
 import socket
 import pickle
 import sys
+import struct
 from ThreeWayHandshake import ThreeWayHandshake
-from dummyPkt import Packet
+from packet import Packet
 from time import sleep
 
 clientAddressPort = (socket.gethostbyname(socket.gethostname()), int(sys.argv[1]))
@@ -47,10 +48,11 @@ rn = 0
 
 
 while True:
-    data, address = ClientSocket.recvfrom(32766)
+    data, address = ClientSocket.recvfrom(32780)
     p = Packet(byte_data=data)
 
     # TODO checksum V
+    print(p.generate_checksum(), p.get_checksum())
     if p.get_seq_num() == rn and p.get_flag() == b"\x00":
         print("[!] Receive Packet SEQ ", p.get_seq_num())
         print("[!] Write to file")
