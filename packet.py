@@ -11,7 +11,7 @@ class Packet:
     Data = Max 32768 bytes
     """
 
-    def __init__(self, seq_num=0, ack_num=0, flag=b"\x00", data=b"", byte_data=None):
+    def __init__(self, seq_num=0, ack_num=0, flag=b"", data=b"", byte_data=None):
         if byte_data is not None:
             self.seq_num = struct.pack("I", int.from_bytes(byte_data[0:4], "little"))
             self.ack_num = struct.pack("I", int.from_bytes(byte_data[4:8], "little"))
@@ -22,12 +22,13 @@ class Packet:
             return
 
         try:
-            if len(data) > 32767:
+            if len(data) > 32768:
+                print("SINI")
                 raise Exception("Data too long")
         except:
             pass
-        self.seq_num = struct.pack(">I", seq_num)
-        self.ack_num = struct.pack(">I", ack_num)
+        self.seq_num = struct.pack("I", seq_num)
+        self.ack_num = struct.pack("I", ack_num)
         self.flag = struct.pack("s", flag)
         self.data = struct.pack(f"{len(data)}s", data)
         self.data_length = struct.pack("2s", len(data).to_bytes(2, "little"))
@@ -43,10 +44,10 @@ class Packet:
         )
 
     def get_seq_num(self):
-        return struct.unpack(">I", self.seq_num)[0]
+        return struct.unpack("I", self.seq_num)[0]
 
     def get_ack_num(self):
-        return struct.unpack(">I", self.ack_num)[0]
+        return struct.unpack("I", self.ack_num)[0]
 
     def get_flag(self):
         return struct.unpack("s", self.flag)[0]
@@ -82,3 +83,4 @@ class Packet:
                 chunk += struct.pack("x")
             checksum = 0xFFFF & (checksum + struct.unpack(">H", chunk)[0])
         return ~checksum & 0xFFFF
+

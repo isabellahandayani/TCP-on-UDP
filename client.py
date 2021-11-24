@@ -13,47 +13,26 @@ path = open(sys.argv[2], "w")
 
 bufferSize = 4096
 
-ClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+ClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
 # Create new object from ThreeWayHandshake class
 obj = ThreeWayHandshake()
 
 # Connect to server
-ClientSocket.connect(serverAddressPort)
+ClientSocket.sendto(b"", serverAddressPort)
 # Call Connection from ThreeWayHandshake object
-obj.Connection()
-
-while obj.connected == False:
-    print("Client side:", obj)
-    ClientSocket.sendall(pickle.dumps(obj))
-    if obj.connected == True:
-        break
-    del obj
-    data = ClientSocket.recv(bufferSize)
-    sleep(1)
-    obj = pickle.loads(data)
-    del data
-    print("Client side after response:", obj)
-    obj.Connection()
-
-print("Done.") if obj.connected == True else print("Not done")
 
 # GO BACK N
 N = 4
 ack_num = 0
 rn = 0
 
-# p = Packet(flag=b"\x02", seq_num=rn, ack_num=ack_num)
-# s.send(p.get_packet_content())
-
-
 while True:
     data, address = ClientSocket.recvfrom(32780)
     p = Packet(byte_data=data)
 
     # TODO checksum V
-    print(p.generate_checksum(), p.get_checksum())
-    if p.get_seq_num() == rn and p.get_flag() == b"\x00":
+    if p.get_seq_num() == rn and p.get_flag() == b"\x00" and p.get_checksum() == struct.pack("H", p.generate_checksum()):
         print("[!] Receive Packet SEQ ", p.get_seq_num())
         print("[!] Write to file")
         path.write(p.get_message().decode())
@@ -63,15 +42,15 @@ while True:
     if p.get_flag() == b"\x00":
         print("[!} Send ACK: ", ack_num)
         ack = Packet(flag=b"\x10", ack_num=ack_num)
-        ClientSocket.send(ack.get_packet_content())
+        ClientSocket.sendto(ack.get_packet_content(), address)
 
     if p.get_flag() == b"\x02":
         print("[!] Receive FIN")
         p = Packet(flag=b"\x10", seq_num=rn, ack_num=ack_num)
         print("[!] Sending ACK")
-        ClientSocket.send(p.get_packet_content())
+        ClientSocket.sendto(p.get_packet_content(), address)
         p = Packet(flag=b"\x02", seq_num=rn, ack_num=ack_num)
-        ClientSocket.send(p.get_packet_content())
+        ClientSocket.sendto(p.get_packet_content(), address)
         print("[!] Sending FIN")
         break
 

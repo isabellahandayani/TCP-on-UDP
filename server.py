@@ -10,7 +10,7 @@ localIP = socket.gethostbyname(socket.gethostname())
 localPort = int(sys.argv[1])
 bufferSize = 4096
 
-ServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+ServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
 # Bind to address and ip
 ServerSocket.bind((localIP, localPort))
@@ -19,15 +19,11 @@ print(f"Server started at port {localPort}")
 print("Listening to broadcast address for clients.")
 
 listening = True
-conlist = []
 adrlist = []
 # Listen for incoming datagrams
 while listening:
-    ServerSocket.listen(1)
-    # Accept a connection and get a new socket object
-    con, adr = ServerSocket.accept()
+    msg, adr = ServerSocket.recvfrom(bufferSize)
     print(f"[!] Client {adr} found")
-    conlist.append(con)
     adrlist.append(adr)
     listen_more = input("[?] Listen more? (y/n) ")
     if listen_more == "n":
@@ -39,24 +35,8 @@ for i in range(len(adrlist)):
     print(f"{i+1}. {adrlist[i]}")
 print("\n")
 
-for i in range(len(conlist)):
-    con = conlist[i]
-    connection = False
-    while connection == False:
-        print("Waiting for connection")
-        # Receive data on the connection
-        data = con.recv(bufferSize)
-        # Retrieve pickled data (ThreeWayHandshake object)
-        obj = pickle.loads(data)
-        # Delete data object
-        del data
-        print("Received.")
-        # Call Connection from ThreeWayHandshake object
-        obj.Connection()
-        print("Server side:", obj)
-        con.sendall(pickle.dumps(obj))
-        connection = obj.IsConnected()
-    print("Three-way done!!!\n")
+for i in range(len(adrlist)):
+
 
     # Go Back N
     path = open(sys.argv[2], "rb")
@@ -69,18 +49,18 @@ for i in range(len(conlist)):
     inorder = False
     expected_seqnum = 0
     buffer = []
-    con.settimeout(timeoutpd)
+    ServerSocket.settimeout(timeoutpd)
     EOT = False
     filesize = os.stat(sys.argv[2]).st_size
 
     while not FIN:
         try:
             # CHECK FOR ACK
-            data, _ = con.recvfrom(32780)
+            data, _ = ServerSocket.recvfrom(32780)
             p = Packet(byte_data=data)
 
             if p.get_flag() == b"\x02":
-                print("[!] RECEIVE FIN FROM CLIENT")
+                print(f"[Segment SEQ {p.get_ack_num()}] FIN")
                 FIN = True
                 break
 
@@ -105,13 +85,13 @@ for i in range(len(conlist)):
             # Send FIN
             if EOT and all(x == 0 for x in buffer):
                 p = Packet(flag=b"\x02")
-                con.sendto(p.get_packet_content(), adrlist[i])
+                ServerSocket.sendto(p.get_packet_content(), adrlist[i])
 
             # Timeout Resend Buffer
             elif not all(x == 0 for x in buffer):
                 for j in range(len(buffer)):
                     if buffer[j] != 0:
-                        con.sendto(buffer[j].get_packet_content(), adrlist[i])
+                        ServerSocket.sendto(buffer[j].get_packet_content(), adrlist[i])
 
         # ACK is out of order
         # Resend all packets in the window
@@ -121,7 +101,7 @@ for i in range(len(conlist)):
             for j in range(len(buffer)):
                 if buffer[j] != 0:
                     print("[!] Resending packet seq", buffer[j].get_seq_num())
-                    con.sendto(buffer[j].get_packet_content(), adrlist[i])
+                    ServerSocket.sendto(buffer[j].get_packet_content(), adrlist[i])
             inorder = False
 
         if sn < sb + N and not EOT:  # sb <= sn <= sm
@@ -132,7 +112,7 @@ for i in range(len(conlist)):
                 if filesize <= 0:
                     EOT = True
                     break
-                filedata = path.read(32780)
+                filedata = path.read(32768)
 
                 print("[!] Sending Packet Sn: ", sn)
                 p = Packet(flag=b"\x00", seq_num=sn, data=filedata)
@@ -140,11 +120,10 @@ for i in range(len(conlist)):
                     buffer[sn] = p
                 except:
                     buffer.append(p)
-                con.sendto(p.get_packet_content(), adrlist[i])
+                ServerSocket.sendto(p.get_packet_content(), adrlist[i])
                 sn = sn + 1
                 # Final
-                filesize -= 32780
+                filesize -= 32768
                 Ntemp -= 1
                 
-    con.close()
 path.close()
