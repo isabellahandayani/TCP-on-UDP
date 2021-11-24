@@ -132,7 +132,7 @@ for i in range(len(conlist)):
                 if filesize <= 0:
                     EOT = True
                     break
-                filedata = path.read(32780)
+                filedata = path.read(32768)
 
                 print("[!] Sending Packet Sn: ", sn)
                 p = Packet(flag=b"\x00", seq_num=sn, data=filedata)
@@ -143,8 +143,8 @@ for i in range(len(conlist)):
                 con.sendto(p.get_packet_content(), adrlist[i])
                 sn = sn + 1
                 # Final
-                filesize -= 32780
+                filesize -= 32768
                 Ntemp -= 1
-                
+
     con.close()
 path.close()

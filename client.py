@@ -53,7 +53,7 @@ while True:
 
     # TODO checksum V
     print(p.generate_checksum(), p.get_checksum())
-    if p.get_seq_num() == rn and p.get_flag() == b"\x00":
+    if p.get_seq_num() == rn and p.get_flag() == b"\x00" and struct.pack("H", p.generate_checksum()) == p.get_checksum():
         print("[!] Receive Packet SEQ ", p.get_seq_num())
         print("[!] Write to file")
         path.write(p.get_message().decode())
