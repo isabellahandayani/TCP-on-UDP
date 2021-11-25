@@ -36,7 +36,7 @@ while connection == False:
         print("Received.")
         # Call Connection from ThreeWayHandshake object
         obj.Connection()
-        print("Server side:", obj)
+        print("Client side:", obj)
         ClientSocket.sendto(pickle.dumps(obj), serverAddressPort)
         connection = obj.IsConnected()
     except:

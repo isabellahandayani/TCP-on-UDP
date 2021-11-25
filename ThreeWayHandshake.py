@@ -16,7 +16,7 @@ class ThreeWayHandshake:
             self.status = "ACK"
         elif self.status == "ACK":
             self.connected = True
-            print("Connected.", "Ready to received data.", sep="\n")
+            print("Connected.", "Ready to transfer data.", sep="\n")
 
     def IsConnected(self):
         return self.connected
