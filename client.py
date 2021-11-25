@@ -21,23 +21,22 @@ obj = ThreeWayHandshake()
 # Connect to server
 ClientSocket.sendto(b"", serverAddressPort)
 # Call Connection from ThreeWayHandshake object
+obj.Connection()
 
-# obj.Connection()
+while obj.connected == False:
+    print("Client side:", obj)
+    ClientSocket.sendto(pickle.dumps(obj), serverAddressPort)
+    if obj.connected == True:
+        break
+    del obj
+    data = ClientSocket.recvfrom(bufferSize)[0]
+    sleep(1)
+    obj = pickle.loads(data)
+    del data
+    print("Client side after response:", obj)
+    obj.Connection()
 
-# while obj.connected == False:
-#     print("Client side:", obj)
-#     ClientSocket.sendall(pickle.dumps(obj))
-#     if obj.connected == True:
-#         break
-#     del obj
-#     data = ClientSocket.recv(bufferSize)
-#     sleep(1)
-#     obj = pickle.loads(data)
-#     del data
-#     print("Client side after response:", obj)
-#     obj.Connection()
-
-# print("Done.") if obj.connected == True else print("Not done")
+print("Done.") if obj.connected == True else print("Not done")
 
 
 # GO BACK N
