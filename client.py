@@ -33,14 +33,15 @@ while True:
 
     # TODO checksum V
     if p.get_seq_num() == rn and p.get_flag() == b"\x00" and p.get_checksum() == struct.pack("H", p.generate_checksum()):
-        print("[!] Receive Packet SEQ ", p.get_seq_num())
-        print("[!] Write to file")
+        print(f"[Segment SEQ={p.get_seq_num()}] Received, ACK sent" )
         path.write(p.get_message().decode())
         rn = rn + 1
         ack_num = p.get_seq_num()
+    else:
+        print(f"[Segment SEQ={p.get_seq_num()}] Received, ACK sent" )
+
 
     if p.get_flag() == b"\x00":
-        print("[!} Send ACK: ", ack_num)
         ack = Packet(flag=b"\x10", ack_num=ack_num)
         ClientSocket.sendto(ack.get_packet_content(), address)
 

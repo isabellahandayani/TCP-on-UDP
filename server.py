@@ -36,8 +36,6 @@ for i in range(len(adrlist)):
 print("\n")
 
 for i in range(len(adrlist)):
-
-
     # Go Back N
     path = open(sys.argv[2], "rb")
     N = 4
@@ -66,7 +64,7 @@ for i in range(len(adrlist)):
 
             # IF ACK is In Order
             if p.get_ack_num() >= expected_seqnum and p.get_flag() == b"\x10":
-                print("[!] Receive ACK: ", p.get_ack_num())
+                print(f"[Segment SEQ={p.get_ack_num()}] Acked")
                 for j in range(expected_seqnum, p.get_ack_num() + 1):
                     buffer[j] = 0
 
@@ -104,7 +102,7 @@ for i in range(len(adrlist)):
                     ServerSocket.sendto(buffer[j].get_packet_content(), adrlist[i])
             inorder = False
 
-        if sn < sb + N and not EOT:  # sb <= sn <= sm
+        if sn < sb + N and not EOT and all(x == 0 for x in buffer):  # sb <= sn <= sm
             Ntemp = N + sb - sn
 
             # Send packet in empty place
@@ -114,7 +112,7 @@ for i in range(len(adrlist)):
                     break
                 filedata = path.read(32768)
 
-                print("[!] Sending Packet Sn: ", sn)
+                print(f"[Segment SEQ={sn}] Sent")
                 p = Packet(flag=b"\x00", seq_num=sn, data=filedata)
                 try:
                     buffer[sn] = p
