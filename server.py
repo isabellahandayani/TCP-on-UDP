@@ -3,8 +3,9 @@ import pickle
 import sys
 import os
 import struct
-import ThreeWayHandshake
+from ThreeWayHandshake import ThreeWayHandshake
 from packet import Packet
+from time import sleep
 
 localIP = socket.gethostbyname(socket.gethostname())
 localPort = int(sys.argv[1])
@@ -37,21 +38,22 @@ for i in range(len(adrlist)):
 print("\n")
 
 for i in range(len(adrlist)):
+    obj = ThreeWayHandshake()
     connection = False
     while connection == False:
-        print("Waiting for connection")
-        # Receive data on the connection
-        data = ServerSocket.recvfrom(bufferSize)[0]
-        # Retrieve pickled data (ThreeWayHandshake object)
-        obj = pickle.loads(data)
-        # Delete data object
-        del data
-        print("Received.")
-        # Call Connection from ThreeWayHandshake object
-        obj.Connection()
-        print("Server side:", obj)
+        print("Server Side: ", obj)
         ServerSocket.sendto(pickle.dumps(obj), adrlist[i])
-        connection = obj.IsConnected()
+        data = ServerSocket.recvfrom(bufferSize)[0]
+        del obj
+        obj = pickle.loads(data)
+        del data
+        print("Server side after response:", obj)
+        obj.Connection()
+        if obj.connected:
+            ServerSocket.sendto(pickle.dumps(obj), adrlist[i])
+            break
+		
+        connection = obj.connected
     print("Three-way done!!!\n")
 
     # Go Back N
@@ -141,5 +143,5 @@ for i in range(len(adrlist)):
                 # Final
                 filesize -= 32768
                 Ntemp -= 1
-                
+
 path.close()

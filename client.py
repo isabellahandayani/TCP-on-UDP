@@ -2,9 +2,8 @@ import socket
 import pickle
 import sys
 import struct
-from ThreeWayHandshake import ThreeWayHandshake
+import ThreeWayHandshake
 from packet import Packet
-from time import sleep
 
 clientAddressPort = (socket.gethostbyname(socket.gethostname()), int(sys.argv[1]))
 serverAddressPort = (socket.gethostbyname(socket.gethostname()), 3000)
@@ -16,27 +15,29 @@ bufferSize = 32780
 ClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
 # Create new object from ThreeWayHandshake class
-obj = ThreeWayHandshake()
 
 # Connect to server
 ClientSocket.sendto(b"", serverAddressPort)
 # Call Connection from ThreeWayHandshake object
-obj.Connection()
 
-while obj.connected == False:
-    print("Client side:", obj)
-    ClientSocket.sendto(pickle.dumps(obj), serverAddressPort)
-    if obj.connected == True:
-        break
-    del obj
+connection = False
+print("Waiting for connection")
+while connection == False:
+    # Receive data on the connection
     data = ClientSocket.recvfrom(bufferSize)[0]
-    sleep(1)
+    # Retrieve pickled data (ThreeWayHandshake object)
     obj = pickle.loads(data)
+    # Delete data object
     del data
-    print("Client side after response:", obj)
+    print("Received.")
+    # Call Connection from ThreeWayHandshake object
     obj.Connection()
+    print("Server side:", obj)
+    ClientSocket.sendto(pickle.dumps(obj), serverAddressPort)
+    connection = obj.IsConnected()
 
-print("Done.") if obj.connected == True else print("Not done")
+    
+
 
 
 # GO BACK N
@@ -49,14 +50,17 @@ while True:
     p = Packet(byte_data=data)
 
     # TODO checksum V
-    if p.get_seq_num() == rn and p.get_flag() == b"\x00" and p.get_checksum() == struct.pack("H", p.generate_checksum()):
-        print(f"[Segment SEQ={p.get_seq_num()}] Received, ACK sent" )
+    if (
+        p.get_seq_num() == rn
+        and p.get_flag() == b"\x00"
+        and p.get_checksum() == struct.pack("H", p.generate_checksum())
+    ):
+        print(f"[Segment SEQ={p.get_seq_num()}] Received, ACK sent")
         path.write(p.get_message().decode())
         rn = rn + 1
         ack_num = p.get_seq_num()
     else:
-        print(f"[Segment SEQ={p.get_seq_num()}] Received, ACK sent" )
-
+        print(f"[Segment SEQ={p.get_seq_num()}] Received, ACK sent")
 
     if p.get_flag() == b"\x00":
         ack = Packet(flag=b"\x10", ack_num=ack_num)
