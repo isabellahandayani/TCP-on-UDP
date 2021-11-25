@@ -59,6 +59,9 @@ for i in range(len(adrlist)):
         except socket.error:
             print("Failed to make a connection")
             break
+        except:
+            print("Failed to make connection")
+            break
 
     if connection:
         print("Three-way done!!!\n")
@@ -91,11 +94,9 @@ for i in range(len(adrlist)):
                         f"[Segment SEQ={p.get_seq_num()} ACK={p.get_ack_num()}] Receive ACK"
                     )
                     sent = True
-                    print("Receive Fin ACK")
-                    print("Sending ACK")
                     data, _ = ServerSocket.recvfrom(32780)
                     p = Packet(byte_data=data)
-                    if p.get_flag() == b"\x10":
+                    if p.get_flag() == b"\x02":
                         data, _ = ServerSocket.recvfrom(32780)
                         p = Packet(byte_data=data)
                         if p.get_flag() == b"\x10":
