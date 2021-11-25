@@ -8,7 +8,7 @@ from packet import Packet
 
 localIP = socket.gethostbyname(socket.gethostname())
 localPort = int(sys.argv[1])
-bufferSize = 4096
+bufferSize = 32780
 
 ServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
@@ -22,13 +22,14 @@ listening = True
 adrlist = []
 # Listen for incoming datagrams
 while listening:
-    msg, adr = ServerSocket.recvfrom(bufferSize)
-    print(f"[!] Client {adr} found")
-    adrlist.append(adr)
-    listen_more = input("[?] Listen more? (y/n) ")
-    if listen_more == "n":
-        listening = False
-        print("\n")
+    msg, adr = ServerSocket.recvfrom(32780)
+    if adr not in adrlist:
+        print(f"[!] Client {adr} found")
+        adrlist.append(adr)
+        listen_more = input("[?] Listen more? (y/n) ")
+        if listen_more == "n":
+            listening = False
+            print("\n")
 
 print(f"{len(adrlist)} clients found:")
 for i in range(len(adrlist)):
@@ -49,7 +50,7 @@ for i in range(len(adrlist)):
         # Call Connection from ThreeWayHandshake object
         obj.Connection()
         print("Server side:", obj)
-        ServerSocket.sendto(pickle.dumps(obj), adr)
+        ServerSocket.sendto(pickle.dumps(obj), adrlist[i])
         connection = obj.IsConnected()
     print("Three-way done!!!\n")
 

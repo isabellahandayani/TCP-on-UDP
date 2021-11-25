@@ -11,7 +11,7 @@ serverAddressPort = (socket.gethostbyname(socket.gethostname()), 3000)
 
 path = open(sys.argv[2], "w")
 
-bufferSize = 4096
+bufferSize = 32780
 
 ClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
