@@ -83,4 +83,3 @@ class Packet:
                 chunk += struct.pack("x")
             checksum = 0xFFFF & (checksum + struct.unpack(">H", chunk)[0])
         return ~checksum & 0xFFFF
-

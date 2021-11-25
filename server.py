@@ -52,7 +52,7 @@ for i in range(len(adrlist)):
         if obj.connected:
             ServerSocket.sendto(pickle.dumps(obj), adrlist[i])
             break
-		
+
         connection = obj.connected
     print("Three-way done!!!\n")
 
@@ -71,17 +71,37 @@ for i in range(len(adrlist)):
     EOT = False
     filesize = os.stat(sys.argv[2]).st_size
 
-    while not FIN:
+    while True:
         try:
             # CHECK FOR ACK
             data, _ = ServerSocket.recvfrom(32780)
             p = Packet(byte_data=data)
 
-            if p.get_flag() == b"\x02":
-                print(f"[Segment SEQ {p.get_ack_num()}] FIN")
-                FIN = True
-                break
-
+            if p.get_flag() == b"\x10" and FIN:
+                print(
+                    f"[Segment SEQ={p.get_seq_num()} ACK={p.get_ack_num()}] Receive ACK"
+                )
+                data, _ = ServerSocket.recvfrom(32780)
+                p = Packet(byte_data=data)
+                if p.get_flag() == b"\x02":
+                    data, _ = ServerSocket.recvfrom(32780)
+                    p = Packet(byte_data=data)
+                    if p.get_flag() == b"\x10":
+                        print(
+                            f"[Segment SEQ={p.get_seq_num()} ACK={p.get_ack_num()}] Receive FIN ACK"
+                        )
+                        p = Packet(
+                            flag=b"\x10",
+                            seq_num=p.get_ack_num(),
+                            ack_num=p.get_seq_num() + 1,
+                        )
+                        print(
+                            f"[Segment SEQ={p.get_seq_num()} ACK={p.get_ack_num()}] Sending ACK"
+                        )
+                        ServerSocket.sendto(p.get_packet_content(), adrlist[i])
+                        print("[!] Connection Closing")
+                        break
+                    break
             # IF ACK is In Order
             if p.get_ack_num() >= expected_seqnum and p.get_flag() == b"\x10":
                 print(f"[Segment SEQ={p.get_ack_num()}] Acked")
@@ -101,9 +121,13 @@ for i in range(len(adrlist)):
 
         except socket.error:
             # Send FIN
-            if EOT and all(x == 0 for x in buffer):
-                p = Packet(flag=b"\x02")
+            if EOT and all(x == 0 for x in buffer) and not FIN:
+                print(f"[Segment SEQ={sn} ACK={sb}] Sending FIN, ACK")
+                p = Packet(flag=b"\x02", seq_num=sn, ack_num=sb)
                 ServerSocket.sendto(p.get_packet_content(), adrlist[i])
+                p = Packet(flag=b"\x10", seq_num=sn, ack_num=sb)
+                ServerSocket.sendto(p.get_packet_content(), adrlist[i])
+                FIN = True
 
             # Timeout Resend Buffer
             elif not all(x == 0 for x in buffer):

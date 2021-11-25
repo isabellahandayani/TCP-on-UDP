@@ -1,5 +1,4 @@
 class ThreeWayHandshake:
-
     def __init__(self, twh=None):
 
         self.status = None

@@ -36,9 +36,6 @@ while connection == False:
     ClientSocket.sendto(pickle.dumps(obj), serverAddressPort)
     connection = obj.IsConnected()
 
-    
-
-
 
 # GO BACK N
 N = 4
@@ -59,22 +56,38 @@ while True:
         path.write(p.get_message().decode())
         rn = rn + 1
         ack_num = p.get_seq_num()
-    else:
+    elif p.get_flag() == b"\x00":
         print(f"[Segment SEQ={p.get_seq_num()}] Received, ACK sent")
 
     if p.get_flag() == b"\x00":
         ack = Packet(flag=b"\x10", ack_num=ack_num)
         ClientSocket.sendto(ack.get_packet_content(), address)
-
     if p.get_flag() == b"\x02":
-        print("[!] Receive FIN")
-        p = Packet(flag=b"\x10", seq_num=rn, ack_num=ack_num)
-        print("[!] Sending ACK")
-        ClientSocket.sendto(p.get_packet_content(), address)
-        p = Packet(flag=b"\x02", seq_num=rn, ack_num=ack_num)
-        ClientSocket.sendto(p.get_packet_content(), address)
-        print("[!] Sending FIN")
-        break
+        data, address = ClientSocket.recvfrom(32780)
+        p = Packet(byte_data=data)
+        if p.get_flag() == b"\x10":
+            print(
+                f"[Segment SEQ={p.get_seq_num()} ACK={p.get_ack_num()}] Receive FIN, ACK"
+            )
+            ack = Packet(
+                flag=b"\x10", seq_num=p.get_ack_num(), ack_num=p.get_seq_num() + 1
+            )
+            print(
+                f"[Segment SEQ={ack.get_seq_num()} ACK={ack.get_ack_num()}] Sending ACK"
+            )
+            ClientSocket.sendto(ack.get_packet_content(), address)
+            fin = Packet(
+                flag=b"\x02", seq_num=p.get_ack_num(), ack_num=p.get_seq_num() + 1
+            )
+            ClientSocket.sendto(fin.get_packet_content(), address)
+            ack = Packet(
+                flag=b"\x10", seq_num=p.get_ack_num(), ack_num=p.get_seq_num() + 1
+            )
+            ClientSocket.sendto(ack.get_packet_content(), address)
+            print(
+                f"[Segment SEQ={ack.get_seq_num()} ACK={ack.get_ack_num()}] Sending FIN, ACK"
+            )
+            break
 
 
 path.close()
