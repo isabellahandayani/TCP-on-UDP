@@ -8,7 +8,7 @@ from packet import Packet
 clientAddressPort = (socket.gethostbyname(socket.gethostname()), int(sys.argv[1]))
 serverAddressPort = (socket.gethostbyname(socket.gethostname()), 3000)
 
-path = open(sys.argv[2], "w")
+path = open(sys.argv[2], "wb")
 
 bufferSize = 32780
 
@@ -53,7 +53,7 @@ while True:
         and p.get_checksum() == struct.pack("H", p.generate_checksum())
     ):
         print(f"[Segment SEQ={p.get_seq_num()}] Received, ACK sent")
-        path.write(p.get_message().decode())
+        path.write(p.get_message())
         rn = rn + 1
         ack_num = p.get_seq_num()
     elif p.get_flag() == b"\x00":
