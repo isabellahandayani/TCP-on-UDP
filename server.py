@@ -36,6 +36,24 @@ for i in range(len(adrlist)):
 print("\n")
 
 for i in range(len(adrlist)):
+    # con = conlist[i]
+    # connection = False
+    # while connection == False:
+    #     print("Waiting for connection")
+    #     # Receive data on the connection
+    #     data = con.recv(bufferSize)
+    #     # Retrieve pickled data (ThreeWayHandshake object)
+    #     obj = pickle.loads(data)
+    #     # Delete data object
+    #     del data
+    #     print("Received.")
+    #     # Call Connection from ThreeWayHandshake object
+    #     obj.Connection()
+    #     print("Server side:", obj)
+    #     con.sendall(pickle.dumps(obj))
+    #     connection = obj.IsConnected()
+    # print("Three-way done!!!\n")
+
     # Go Back N
     path = open(sys.argv[2], "rb")
     N = 4
